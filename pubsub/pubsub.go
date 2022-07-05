@@ -22,11 +22,17 @@ import (
 
 // PubSub is the interface for message buses.
 type PubSub interface {
+	MultiPubsub
 	Init(metadata Metadata) error
 	Features() []Feature
 	Publish(req *PublishRequest) error
 	Subscribe(ctx context.Context, req SubscribeRequest, handler Handler) error
 	Close() error
+}
+
+type MultiPubsub interface {
+	BatchPublish(req *BatchPublishRequest) error
+	BulkSubscribe(ctx context.Context, req SubscribeRequest, handler MultiMessageHandler) error
 }
 
 // Handler is the handler used to invoke the app handler.
@@ -39,4 +45,28 @@ func Ping(pubsub PubSub) error {
 	} else {
 		return fmt.Errorf("Ping is not implemented by this pubsub")
 	}
+}
+
+// MultiMessageHandler is the handler used to invoke the app handler.
+type MultiMessageHandler func(ctx context.Context, msg []*NewMessage) error
+
+type DefaultMultiPubsub struct {
+	p PubSub
+}
+
+// NewDefaultBulkStore build a default bulk store.
+func NewDefaultMultiPubsub(pubsub PubSub) DefaultMultiPubsub {
+	defaultMultiPubsub := DefaultMultiPubsub{}
+	defaultMultiPubsub.p = pubsub
+
+	return defaultMultiPubsub
+}
+
+// TODO @mukundansundar implement BatchPublish and BulkSubscribe
+func (p *DefaultMultiPubsub) BatchPublish(req *BatchPublishRequest) error {
+	return nil
+}
+
+func (p *DefaultMultiPubsub) BulkSubscribe(tx context.Context, req SubscribeRequest, handler MultiMessageHandler) error {
+	return nil
 }
