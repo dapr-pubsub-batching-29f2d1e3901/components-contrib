@@ -17,15 +17,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/asaskevich/EventBus"
-
+	"github.com/dapr/components-contrib/internal/eventbus"
 	"github.com/dapr/components-contrib/pubsub"
 	"github.com/dapr/kit/logger"
 )
 
 type bus struct {
 	pubsub.DefaultMultiPubsub
-	bus EventBus.Bus
+	bus eventbus.Bus
 	log logger.Logger
 }
 
@@ -40,11 +39,11 @@ func (a *bus) Close() error {
 }
 
 func (a *bus) Features() []pubsub.Feature {
-	return nil
+	return []pubsub.Feature{pubsub.FeatureSubscribeWildcards}
 }
 
 func (a *bus) Init(metadata pubsub.Metadata) error {
-	a.bus = EventBus.New()
+	a.bus = eventbus.New(true)
 
 	return nil
 }
