@@ -32,11 +32,14 @@ type PubSub interface {
 
 type MultiPubsub interface {
 	BatchPublish(req *BatchPublishRequest) error
-	BulkSubscribe(ctx context.Context, req SubscribeRequest, handler MultiMessageHandler) error
+	BatchSubscribe(ctx context.Context, req SubscribeRequest, handler BatchHandler) error
 }
 
 // Handler is the handler used to invoke the app handler.
 type Handler func(ctx context.Context, msg *NewMessage) error
+
+// BatchHandler is the handler used to invoke the app handler.
+type BatchHandler func(ctx context.Context, msg *NewBatchMessage) error
 
 func Ping(pubsub PubSub) error {
 	// checks if this pubsub has the ping option then executes
@@ -46,9 +49,6 @@ func Ping(pubsub PubSub) error {
 		return fmt.Errorf("ping is not implemented by this pubsub")
 	}
 }
-
-// MultiMessageHandler is the handler used to invoke the app handler.
-type MultiMessageHandler func(ctx context.Context, msg []*NewMessage) error
 
 type DefaultMultiPubsub struct {
 	p PubSub
@@ -62,11 +62,11 @@ func NewDefaultMultiPubsub(pubsub PubSub) DefaultMultiPubsub {
 	return defaultMultiPubsub
 }
 
-// TODO @mukundansundar implement BatchPublish and BulkSubscribe
+// TODO @mukundansundar implement BatchPublish and BatchSubscribe
 func (p *DefaultMultiPubsub) BatchPublish(req *BatchPublishRequest) error {
 	return nil
 }
 
-func (p *DefaultMultiPubsub) BulkSubscribe(tx context.Context, req SubscribeRequest, handler MultiMessageHandler) error {
+func (p *DefaultMultiPubsub) BatchSubscribe(tx context.Context, req SubscribeRequest, handler BatchHandler) error {
 	return nil
 }

@@ -65,6 +65,61 @@ func unmarshalPrecise(data []byte, v interface{}) error {
 	return nil
 }
 
+func NewBatchCloudEventsEnvelope(id, source, eventType, subject string, topic string, pubsubName string,
+	dataContentType string, data []NewBatchChildMessage, traceParent string, traceState string,
+) map[string]interface{} {
+	// defaults
+	if id == "" {
+		id = uuid.New().String()
+	}
+	if source == "" {
+		source = DefaultCloudEventSource
+	}
+	if eventType == "" {
+		eventType = DefaultCloudEventType
+	}
+	if dataContentType == "" {
+		dataContentType = DefaultCloudEventDataContentType
+	}
+
+	var ceData interface{}
+	ceDataField := DataField
+	// var err error
+	// if contrib_contenttype.IsJSONContentType(dataContentType) {
+	// 	err = unmarshalPrecise(data, &ceData)
+	// } else if contrib_contenttype.IsBinaryContentType(dataContentType) {
+	// 	ceData = base64.StdEncoding.EncodeToString(data)
+	// 	ceDataField = DataBase64Field
+	// } else {
+	// 	ceData = string(data)
+	// }
+
+	// if err != nil {
+	ceData = data
+	// }
+
+	ce := map[string]interface{}{
+		IDField:              id,
+		SpecVersionField:     CloudEventsSpecVersion,
+		DataContentTypeField: dataContentType,
+		SourceField:          source,
+		TypeField:            eventType,
+		TopicField:           topic,
+		PubsubField:          pubsubName,
+		TraceIDField:         traceParent,
+		TraceParentField:     traceParent,
+		TraceStateField:      traceState,
+	}
+
+	ce[ceDataField] = ceData
+
+	if subject != "" {
+		ce[SubjectField] = subject
+	}
+
+	return ce
+}
+
 // NewCloudEventsEnvelope returns a map representation of a cloudevents JSON.
 func NewCloudEventsEnvelope(id, source, eventType, subject string, topic string, pubsubName string,
 	dataContentType string, data []byte, traceParent string, traceState string,
@@ -150,6 +205,24 @@ func FromCloudEvent(cloudEvent []byte, topic, pubsub, traceParent string, traceS
 
 	return m, nil
 }
+
+// // FromRawPayload returns a CloudEvent for a raw payload on subscriber's end.
+// func FromBulkRawPayload(data [][]byte, topic, pubsub string) map[string]interface{} {
+// 	// Limitations of generating the CloudEvent on the subscriber side based on raw payload:
+// 	// - The CloudEvent ID will be random, so the same message can be redelivered as a different ID.
+// 	// - TraceID is not useful since it is random and not from publisher side.
+// 	// - Data is always returned as `data_base64` since we don't know the actual content type.
+// 	return map[string]interface{}{
+// 		IDField:              uuid.New().String(),
+// 		SpecVersionField:     CloudEventsSpecVersion,
+// 		DataContentTypeField: "application/octet-stream",
+// 		SourceField:          DefaultCloudEventSource,
+// 		TypeField:            DefaultCloudEventType,
+// 		TopicField:           topic,
+// 		PubsubField:          pubsub,
+// 		DataBase64Field:      base64.StdEncoding.EncodeToString(data),
+// 	}
+// }
 
 // FromRawPayload returns a CloudEvent for a raw payload on subscriber's end.
 func FromRawPayload(data []byte, topic, pubsub string) map[string]interface{} {

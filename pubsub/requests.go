@@ -44,3 +44,58 @@ type NewMessage struct {
 	Metadata    map[string]string `json:"metadata"`
 	ContentType *string           `json:"contentType,omitempty"`
 }
+
+type NewBatchMessage struct {
+	Messages    []NewBatchLeafMessage `json:"messages"`
+	Topic       string                `json:"topic"`
+	Metadata    map[string]string     `json:"metadata"`
+	ContentType *string               `json:"contentType,omitempty"`
+}
+
+// type JSONableByteArray []byte
+
+// func (u JSONableByteArray) MarshalJSON() ([]byte, error) {
+// 	var result string
+// 	if u == nil {
+// 		result = "null"
+// 	} else {
+// 		result = strings.Join(strings.Fields(fmt.Sprintf("%d", u)), ",")
+// 	}
+// 	return []byte(result), nil
+// }
+
+type NewBatchLeafMessage struct {
+	Data        []byte            `json:"data"`
+	ContentType *string           `json:"contentType,omitempty"`
+	Metadata    map[string]string `json:"metadata"`
+}
+
+type NewBatchChildMessage struct {
+	Data        map[string]interface{} `json:"data"`
+	ContentType *string                `json:"contentType,omitempty"`
+	Metadata    map[string]string      `json:"metadata"`
+}
+
+// func (t *NewBatchLeafMessage) MarshalJSON() ([]byte, error) {
+// 	var data string
+// 	if t.Data == nil {
+// 		data = "null"
+// 	} else {
+// 		data = strings.Join(strings.Fields(fmt.Sprintf("%d", t.Data)), ",")
+// 	}
+// 	jsonResult := fmt.Sprintf(`{"Name":%q,"Array":%s}`, t.Name, data)
+// 	return []byte(jsonResult), nil
+// }
+
+// type NewBatchMessage struct {
+// 	Data        [][]byte          `json:"data"`
+// 	Topic       string            `json:"topic"`
+// 	Metadata    map[string]string `json:"metadata"`
+// 	ContentType *string           `json:"contentType,omitempty"`
+// }
+
+type BatchSubscribeConfig struct {
+	MaxBatchCount            int `json:"maxBatchCount"`
+	MaxBatchLatencyInSeconds int `json:"maxBatchLatencyInSeconds"`
+	MaxBatchSizeInBytes      int `json:"maxBatchSizeInBytes"`
+}
