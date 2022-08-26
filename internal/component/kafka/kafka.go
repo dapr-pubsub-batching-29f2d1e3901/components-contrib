@@ -20,26 +20,29 @@ import (
 
 	"github.com/Shopify/sarama"
 
+	"github.com/dapr/components-contrib/pubsub"
 	"github.com/dapr/kit/logger"
 	"github.com/dapr/kit/retry"
 )
 
 // Kafka allows reading/writing to a Kafka consumer group.
 type Kafka struct {
-	producer        sarama.SyncProducer
-	consumerGroup   string
-	brokers         []string
-	logger          logger.Logger
-	authType        string
-	saslUsername    string
-	saslPassword    string
-	initialOffset   int64
-	cg              sarama.ConsumerGroup
-	cancel          context.CancelFunc
-	consumer        consumer
-	config          *sarama.Config
-	subscribeTopics TopicHandlers
-	subscribeLock   sync.Mutex
+	producer             sarama.SyncProducer
+	consumerGroup        string
+	brokers              []string
+	logger               logger.Logger
+	authType             string
+	saslUsername         string
+	saslPassword         string
+	initialOffset        int64
+	cg                   sarama.ConsumerGroup
+	cancel               context.CancelFunc
+	consumer             consumer
+	config               *sarama.Config
+	subscribeTopics      TopicHandlers
+	batchSubscribeTopics TopicBulkHandlers
+	subscribeLock        sync.Mutex
+	batchSubscribeLock   sync.Mutex
 
 	backOffConfig retry.Config
 
@@ -48,13 +51,16 @@ type Kafka struct {
 	DefaultConsumeRetryEnabled bool
 	consumeRetryEnabled        bool
 	consumeRetryInterval       time.Duration
+	BatchSubscribeConfig       pubsub.BatchSubscribeConfig
 }
 
 func NewKafka(logger logger.Logger) *Kafka {
 	return &Kafka{
-		logger:          logger,
-		subscribeTopics: make(TopicHandlers),
-		subscribeLock:   sync.Mutex{},
+		logger:               logger,
+		subscribeTopics:      make(TopicHandlers),
+		batchSubscribeTopics: make(TopicBulkHandlers),
+		subscribeLock:        sync.Mutex{},
+		batchSubscribeLock:   sync.Mutex{},
 	}
 }
 
@@ -78,6 +84,7 @@ func (k *Kafka) Init(metadata map[string]string) error {
 	config := sarama.NewConfig()
 	config.Version = meta.Version
 	config.Consumer.Offsets.Initial = k.initialOffset
+	// config.Consumer.Fetch.Min = meta.MinFetchBytes //10000 * 1024
 
 	if meta.ClientID != "" {
 		config.ClientID = meta.ClientID
@@ -146,6 +153,8 @@ func (k *Kafka) Close() (err error) {
 // EventHandler is the handler used to handle the subscribed event.
 type EventHandler func(ctx context.Context, msg *NewEvent) error
 
+type BulkEventHandler func(ctx context.Context, msg *NewBatchEvent) error
+
 // NewEvent is an event arriving from a message bus instance.
 type NewEvent struct {
 	Data        []byte            `json:"data"`
@@ -153,3 +162,22 @@ type NewEvent struct {
 	Metadata    map[string]string `json:"metadata"`
 	ContentType *string           `json:"contentType,omitempty"`
 }
+
+type NewBatchEvent struct {
+	Messages    []NewBatchLeafEvent `json:"messages"`
+	Topic       string              `json:"topic"`
+	Metadata    map[string]string   `json:"metadata"`
+	ContentType *string             `json:"contentType,omitempty"`
+}
+
+type NewBatchLeafEvent struct {
+	Data        []byte            `json:"data"`
+	ContentType *string           `json:"contentType,omitempty"`
+	Metadata    map[string]string `json:"metadata"`
+}
+
+// type BatchSubscribeConfig struct {
+// 	MaxBatchCount            int `json:"maxBatchCount"`
+// 	MaxBatchLatencyInSeconds int `json:"maxBatchLatencyInSeconds"`
+// 	MaxBatchSizeInBytes      int `json:"maxBatchSizeInBytes"`
+// }

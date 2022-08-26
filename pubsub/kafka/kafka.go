@@ -15,6 +15,7 @@ package kafka
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/dapr/kit/logger"
 
@@ -28,10 +29,12 @@ type PubSub struct {
 	logger          logger.Logger
 	subscribeCtx    context.Context
 	subscribeCancel context.CancelFunc
+	pubsub.BatchSubscribeConfig
 }
 
 func (p *PubSub) Init(metadata pubsub.Metadata) error {
 	p.subscribeCtx, p.subscribeCancel = context.WithCancel(context.Background())
+	// pubsub.
 
 	return p.kafka.Init(metadata.Properties)
 }
@@ -61,6 +64,46 @@ func (p *PubSub) Subscribe(ctx context.Context, req pubsub.SubscribeRequest, han
 	}()
 
 	return p.kafka.Subscribe(p.subscribeCtx)
+}
+
+func (p *PubSub) BatchSubscribe(ctx context.Context, req pubsub.SubscribeRequest, handler pubsub.BatchHandler) error {
+	p.kafka.AddTopicBulkHandler(req.Topic, adaptBulkHandler(handler))
+	maxBatchCount, err := strconv.Atoi(req.Metadata["maxBatchCount"])
+	if err != nil {
+		maxBatchCount = 20
+	}
+	maxBatchLatencyInSeconds, err := strconv.Atoi(req.Metadata["maxBatchLatencyInSeconds"])
+	if err != nil {
+		maxBatchLatencyInSeconds = 20
+	}
+	maxBatchSizeInBytes, err := strconv.Atoi(req.Metadata["maxBatchSizeInBytes"])
+	if err != nil {
+		maxBatchSizeInBytes = 20
+	}
+	p.kafka.AddBatchSubscribeConfig(maxBatchCount, maxBatchLatencyInSeconds, maxBatchSizeInBytes)
+
+	go func() {
+		// Wait for context cancelation
+		select {
+		case <-ctx.Done():
+		case <-p.subscribeCtx.Done():
+		}
+
+		// Remove the topic handler before restarting the subscriber
+		p.kafka.RemoveTopicBulkHandler(req.Topic)
+
+		// If the component's context has been canceled, do not re-subscribe
+		if p.subscribeCtx.Err() != nil {
+			return
+		}
+
+		err := p.kafka.BatchSubscribe(p.subscribeCtx)
+		if err != nil {
+			p.logger.Errorf("kafka pubsub: error re-subscribing: %v", err)
+		}
+	}()
+
+	return p.kafka.BatchSubscribe(p.subscribeCtx)
 }
 
 // NewKafka returns a new kafka pubsub instance.
@@ -93,6 +136,27 @@ func adaptHandler(handler pubsub.Handler) kafka.EventHandler {
 		return handler(ctx, &pubsub.NewMessage{
 			Topic:       event.Topic,
 			Data:        event.Data,
+			Metadata:    event.Metadata,
+			ContentType: event.ContentType,
+		})
+	}
+}
+
+func adaptBulkHandler(handler pubsub.BatchHandler) kafka.BulkEventHandler {
+	return func(ctx context.Context, event *kafka.NewBatchEvent) error {
+		messages := make([]pubsub.NewBatchLeafMessage, 0)
+		for _, leafEvent := range event.Messages {
+			message := pubsub.NewBatchLeafMessage{
+				Data:        leafEvent.Data,
+				Metadata:    leafEvent.Metadata,
+				ContentType: leafEvent.ContentType,
+			}
+			messages = append(messages, message)
+		}
+
+		return handler(ctx, &pubsub.NewBatchMessage{
+			Topic:       event.Topic,
+			Messages:    messages,
 			Metadata:    event.Metadata,
 			ContentType: event.ContentType,
 		})

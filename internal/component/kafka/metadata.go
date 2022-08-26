@@ -60,6 +60,7 @@ type kafkaMetadata struct {
 	ConsumeRetryEnabled  bool
 	ConsumeRetryInterval time.Duration
 	Version              sarama.KafkaVersion
+	MinFetchBytes        int32
 }
 
 // upgradeMetadata updates metadata properties based on deprecated usage.
@@ -135,6 +136,17 @@ func (k *Kafka) getKafkaMetadata(metadata map[string]string) (*kafkaMetadata, er
 		meta.Brokers = strings.Split(val, ",")
 	} else {
 		return nil, errors.New("kafka error: missing 'brokers' attribute")
+	}
+
+	if val, ok := metadata["minFetchBytes"]; ok && val != "" {
+		val64, _ := strconv.ParseInt(val, 10, 32)
+		meta.MinFetchBytes = int32(val64)
+	} else {
+		return nil, errors.New("kafka error: missing 'minFetchBytes' attribute")
+	}
+	if val, ok := metadata["clientID"]; ok && val != "" {
+		meta.ClientID = val
+		k.logger.Debugf("Using %s as ClientID", meta.ClientID)
 	}
 
 	k.logger.Debugf("Found brokers: %v", meta.Brokers)
