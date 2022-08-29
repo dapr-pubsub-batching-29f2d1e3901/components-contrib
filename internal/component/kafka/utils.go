@@ -55,11 +55,23 @@ func isValidPEM(val string) bool {
 // Map of topics and their handlers
 type TopicHandlers map[string]EventHandler
 
+type TopicBulkHandlers map[string]BulkEventHandler
+
 // TopicList returns the list of topics
 func (th TopicHandlers) TopicList() []string {
 	topics := make([]string, len(th))
 	i := 0
 	for topic := range th {
+		topics[i] = topic
+		i++
+	}
+	return topics
+}
+
+func (tbh TopicBulkHandlers) TopicList() []string {
+	topics := make([]string, len(tbh))
+	i := 0
+	for topic := range tbh {
 		topics[i] = topic
 		i++
 	}
