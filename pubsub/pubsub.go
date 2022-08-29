@@ -22,6 +22,7 @@ import (
 
 // PubSub is the interface for message buses.
 type PubSub interface {
+	BatchPubSub
 	Init(metadata Metadata) error
 	Features() []Feature
 	Publish(req *PublishRequest) error
@@ -29,8 +30,16 @@ type PubSub interface {
 	Close() error
 }
 
+type BatchPubSub interface {
+	BatchPublish(req *BatchPublishRequest) error
+	BatchSubscribe(ctx context.Context, req SubscribeRequest, handler BatchHandler) error
+}
+
 // Handler is the handler used to invoke the app handler.
 type Handler func(ctx context.Context, msg *NewMessage) error
+
+// BatchHandler is the handler used to invoke the app handler.
+type BatchHandler func(ctx context.Context, msg *NewBatchMessage) error
 
 func Ping(pubsub PubSub) error {
 	// checks if this pubsub has the ping option then executes
@@ -39,4 +48,23 @@ func Ping(pubsub PubSub) error {
 	} else {
 		return fmt.Errorf("ping is not implemented by this pubsub")
 	}
+}
+
+type DefaultBatchPubSub struct {
+	p PubSub
+}
+
+func NewDefaultBatchPubSub(pubsub PubSub) DefaultBatchPubSub {
+	defaultMultiPubsub := DefaultBatchPubSub{}
+	defaultMultiPubsub.p = pubsub
+
+	return defaultMultiPubsub
+}
+
+func (p *DefaultBatchPubSub) BatchPublish(req *BatchPublishRequest) error {
+	return nil
+}
+
+func (p *DefaultBatchPubSub) BatchSubscribe(tx context.Context, req SubscribeRequest, handler BatchHandler) error {
+	return nil
 }
