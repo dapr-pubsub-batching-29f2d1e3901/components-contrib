@@ -153,7 +153,7 @@ func (k *Kafka) Close() (err error) {
 // EventHandler is the handler used to handle the subscribed event.
 type EventHandler func(ctx context.Context, msg *NewEvent) error
 
-type BulkEventHandler func(ctx context.Context, msg *NewBatchEvent) error
+type BulkEventHandler func(ctx context.Context, msg *NewBatchEvent) (error, []error)
 
 // NewEvent is an event arriving from a message bus instance.
 type NewEvent struct {

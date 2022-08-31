@@ -28,7 +28,8 @@ import (
 
 const (
 	// DefaultCloudEventType is the default event type for an Dapr published event.
-	DefaultCloudEventType = "com.dapr.event.sent"
+	DefaultCloudEventType      = "com.dapr.event.sent"
+	DefaultBatchCloudEventType = "com.dapr.event.sent.batch"
 	// CloudEventsSpecVersion is the specversion used by Dapr for the cloud events implementation.
 	CloudEventsSpecVersion = "1.0"
 	// DefaultCloudEventSource is the default event source.
@@ -76,7 +77,7 @@ func NewBatchCloudEventsEnvelope(id, source, eventType, subject string, topic st
 		source = DefaultCloudEventSource
 	}
 	if eventType == "" {
-		eventType = DefaultCloudEventType
+		eventType = DefaultBatchCloudEventType
 	}
 	if dataContentType == "" {
 		dataContentType = DefaultCloudEventDataContentType

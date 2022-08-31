@@ -39,7 +39,11 @@ type BatchPubSub interface {
 type Handler func(ctx context.Context, msg *NewMessage) error
 
 // BatchHandler is the handler used to invoke the app handler.
-type BatchHandler func(ctx context.Context, msg *NewBatchMessage) error
+// It returns first type as error which if not nil, reflects that there was an issue with
+// the whole batch event and nothing could be sent ahead.
+// Second return type is []error which represents status per message - if not nil, broker can
+// take appropriate action accordingly.
+type BatchHandler func(ctx context.Context, msg *NewBatchMessage) (error, []error)
 
 func Ping(pubsub PubSub) error {
 	// checks if this pubsub has the ping option then executes

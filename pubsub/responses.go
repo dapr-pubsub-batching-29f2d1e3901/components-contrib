@@ -32,6 +32,7 @@ type AppResponse struct {
 
 type AppResponsePerId struct {
 	Id     string            `json:"id"`
+	Index  string            `json:"index"`
 	Status AppResponseStatus `json:"status"`
 }
 

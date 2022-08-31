@@ -129,11 +129,11 @@ func (consumer *consumer) doBulkCallback(session sarama.ConsumerGroupSession, me
 		Topic:    messages[0].Topic,
 		Messages: messageValues,
 	}
-	err = handler(session.Context(), &event)
+	err, errs := handler(session.Context(), &event)
 	if err == nil {
-		for _, message := range messages {
-			if message != nil {
-				session.MarkMessage(message, "")
+		for i, error := range errs {
+			if error != nil {
+				session.MarkMessage(messages[i], "")
 			}
 		}
 	}
