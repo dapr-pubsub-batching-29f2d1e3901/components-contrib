@@ -62,6 +62,7 @@ type NewBatchChildMessage struct {
 	Data        map[string]interface{} `json:"data"`
 	ContentType *string                `json:"contentType,omitempty"`
 	Metadata    map[string]string      `json:"metadata"`
+	Index       string                 `json:"index"`
 }
 
 type BatchSubscribeConfig struct {

@@ -142,7 +142,7 @@ func adaptHandler(handler pubsub.Handler) kafka.EventHandler {
 }
 
 func adaptBulkHandler(handler pubsub.BatchHandler) kafka.BulkEventHandler {
-	return func(ctx context.Context, event *kafka.NewBatchEvent) error {
+	return func(ctx context.Context, event *kafka.NewBatchEvent) (error, []error) {
 		messages := make([]pubsub.NewBatchLeafMessage, 0)
 		for _, leafEvent := range event.Messages {
 			message := pubsub.NewBatchLeafMessage{
